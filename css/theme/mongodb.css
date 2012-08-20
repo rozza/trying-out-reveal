@@ -113,7 +113,7 @@ title: #ABDC44;
       margin-bottom: 60px;
   }
 
-  .title-slide p {
+  .title-slide .reveal .slides p {
     text-align: center
   }
 /* Title Graphic */
