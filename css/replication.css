@@ -1,0 +1,18 @@
+.priorities .state-background {
+    background: url('../img/priorities.png') no-repeat center;
+    background-size: 100%;
+}
+
+.write-concerns .state-background {
+    background: url('../img/write-concerns.png') no-repeat center;
+    background-size: 100%;
+}
+
+.tagging .state-background {
+    background: url('../img/tagging.png') no-repeat center;
+    background-size: 100%;
+}
+.eventual-consistency .state-background {
+    background: url('../img/eventual-consistency.png') no-repeat center;
+    background-size: 100%;
+}

@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Replication and Replica Sets</title>
+
+		<meta name="description" content="Replication and Replica Sets">
+		<meta name="author" content="10gen">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<link href='http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+
+		<link rel="stylesheet" href="css/main.css">
+		<link rel="stylesheet" href="css/theme/mongodb.css">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Replication based overrides -->
+		<link rel="stylesheet" href="css/replication.css">
+
+		<script>
+			// If the query includes 'print-pdf' we'll use the PDF print sheet
+			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Used to fade in a background when a specific slide state is reached -->
+			<div class="state-background"></div>
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section data-state="title-slide" data-markdown>
+					<h1 class="logo">MongoDB</h1>
+					## Replication and Replica Sets
+
+					Ross Lawley - <ross@10gen.com>
+
+					twitter: [RossC0](http://twitter.com/RossC0)
+				</section>
+
+				<section data-state	data-markdown>
+					# Today's Talk
+
+					* Replication, elections and configuration
+					* High availability scenarios
+				</section>
+
+				<section data-state	data-markdown>
+					# Use Cases
+
+					* High Availability (auto-failover) 
+					* Read Scaling (extra copies to read from) 
+					* Backups
+					  * Online, Delayed Copy (fat finger)
+					  * Point in Time (PiT) backups 
+					* Use (hidden) replica for secondary workload
+					  * Analytics
+					  * Data-processing
+					  * Integration with external systems
+				</section>
+
+				<section data-state	data-markdown>
+					# Types of outage
+
+					Planned
+
+					* Hardware upgrade
+					* O/S or file-system tuning
+					* Relocation of data to new file-system / storage
+					* Software upgrade
+
+					Unplanned
+
+					* Hardware failure
+					* Data center failure
+					* Region outage
+					* Human error
+					* Application corruption
+
+				</section>
+
+				<section data-state	data-markdown>
+					# Replica Set features
+
+					* A cluster of N servers
+					* All writes to primary
+					* Reads can be to primary (default) or a secondary
+					* Any (one) node can be primary
+					* Consensus election of primary
+					* Automatic failover
+					* Automatic recovery
+
+				</section>
+
+				<!-- Nested example of replication -->
+				<section class="center-image">
+					<section data-markdown>
+						# How MongoDB Replication works
+
+						![Nodes](img/ReplicaSets-0.png)
+
+						* Set is made up of 2 or more nodes
+
+					</section>
+					<section data-markdown>
+						# How MongoDB Replication works
+
+						![Election](img/ReplicaSets-1.png)
+
+						* Election establishes the PRIMARY
+						* Data replication from PRIMARY to SECONDARY
+
+					</section>
+					<section data-markdown>
+						# How MongoDB Replication works
+
+						![Primary Failed](img/ReplicaSets-2.png)
+
+						* PRIMARY may fail
+						* Automatic election of new PRIMARY if majority exists
+
+					</section>
+					<section data-markdown>
+						# How MongoDB Replication works
+
+						![New Primary](img/ReplicaSets-3.png)
+
+						* New PRIMARY elected
+						* Replica Set re-established
+
+					</section>
+					<section data-markdown>
+						# How MongoDB Replication works
+
+						![Auto recovery](img/ReplicaSets-4.png)
+
+						* Automatic recovery
+
+					</section>
+					<section data-markdown>
+						# How MongoDB Replication works
+
+						![Replica Set re-established](img/ReplicaSets-5.png)
+
+						* Replica Set re-established
+
+					</section>
+				</section>
+
+				<section data-state	data-markdown>
+					# How's Replication work?
+
+					* Change operations are written to the oplog
+					  * The oplog is a capped collection (fixed size)
+						  * Must have enough space to allow new secondaries to catch up after copying from a primary
+						  * Must have enough space to cope with any applicable slaveDelay
+					* Secondaries query the primary's oplog and apply what they find
+					* All replicas contain an oplog
+				</section>
+
+				<section data-state data-markdown>
+					# Creating a Replica Set
+
+					<pre><code class="language-javascript mid-size">
+mongod --replSet <replica_name>  --oplogSize <MB>  > cfg = {
+	_id : "myset",
+	members : [
+	  { _id : 0, host : "stockholm1.acme.com" },
+	  { _id : 1, host : "stockholm2.acme.com" },
+	  { _id : 2, host : "stockholm3.acme.com" } ] }
+
+> use admin
+> db.runCommand( { replSetInitiate : cfg } )
+					</code></pre>
+				</section>
+
+				<section data-state	data-markdown>
+					# Managing a Replica Set
+
+					* rs.conf()
+					  * Shell helper:  get current configuration
+					* rs.initiate(<cfg>);
+					  * Shell helper:  initiate replica set
+					* rs.reconfig(<cfg>)
+					  * Shell helper:  reconfigure a replica set
+					* rs.add("hostname:<port>")
+					  * Shell helper:  add a new member
+					* rs.remove("hostname:<port>")
+					  * Shell helper:  remove a member
+				</section>
+
+				<section data-state	data-markdown>
+					# Managing a Replica Set
+
+					* rs.status()
+					  * Reports status of the replica set from one node's point of view
+					* rs.stepDown(<secs>)
+					  * Request the primary to step down
+					* rs.freeze(<secs>)
+					  * Prevents any changes to the current replica set configuration (primary/secondary status)
+					  * Use during backups
+				</section>
+
+				<section>
+					<section data-state="title-graphic priorities" data-markdown>
+						## Priorities
+
+						[http://www.flickr.com/photos/21975042@N02/3866780999](http://www.flickr.com/photos/21975042@N02/3866780999)
+					</section>
+
+					<section data-state	data-markdown>
+						# Priorities
+
+						* Priority, floating point number between 0 and 100
+						* Used during an election:
+						  * Most up to date
+						  * Highest priority
+						  * Less than 10s behind failed Primary
+						* Allows weighting of members during failover
+					</section>
+
+					<section data-state	data-markdown class="center-image">
+						# Priorities - example
+
+						![Priorities example](img/ReplicaSets-priorities.png)
+
+						* Assuming all members are up to date
+						* Members A or B will be chosen first
+						  * Highest priority
+						* Members C or D will be chosen when:
+						  * A and B are unavailable
+						  * A and B are not up to date
+						* Member E is never chosen
+						  * priority:0 means it cannot be elected
+					</section>
+				</section>
+
+				<section>
+					<section data-state="title-graphic write-concerns" data-markdown>
+						## Write Concerns
+
+						[http://www.guardian.co.uk/gpc/gallery/view-the-print-site#/?picture=346957405](http://www.guardian.co.uk/gpc/gallery/view-the-print-site#/?picture=346957405)
+					</section>
+
+					<section data-state	data-markdown>
+						# Write Concerns
+
+						<code>db.runCommand({getLastError: 1, w : 1})</code>
+
+						* ensure write is synchronous
+						* command returns after primary has written to memory
+
+						<code>w: n or w: 'majority'</code>
+
+						* n is the number of nodes data must be replicated to
+						* driver will always send writes to Primary
+
+						<code>w: 'my_tag'</code>
+
+						* Each member is "tagged" e.g. "allDCs"
+						* Ensure that the write is executed in each tagged "region"
+					</section>
+
+					<section data-state	data-markdown>
+						# Write Concerns
+
+						<code>fsync: true</code>
+
+						* Ensures changed disk blocks are flushed to disk
+
+						<code>j: true</code>
+
+						* Ensures changes are flushed to the Journal
+					</section>
+				</section>
+
+				<section>
+					<section data-state="title-graphic tagging" data-markdown>
+						## Tagging
+
+						[http://www.flickr.com/photos/dalvenjah/3827183653](http://www.flickr.com/photos/dalvenjah/3827183653)
+					</section>
+
+					<section data-state data-markdown>
+						# Tagging
+
+						* Control over where data is written to.
+						* Each member can have one or more tags: 
+
+						<pre><code class="language-javascript">
+ tags: {dc: "stockholm"}
+ tags: {dc: "stockholm", 
+		ip: "192.168", 
+		rack: "row3-rk7"} 
+
+</code></pre>
+						* Replica set defines rules for where data resides
+						* Rules can change without change application code
+					</section>
+
+					<section data-state data-markdown>
+						# Tagging - example
+						<pre><code class="language-javascript mid-size">
+{_id : "mySet",
+ members : [
+   {_id : 0, host : "A", tags : {"dc": "sto"}},
+   {_id : 1, host : "B", tags : {"dc": "ber"}},
+   {_id : 2, host : "C", tags : {"dc": "lon"}},
+   {_id : 4, host : "D", tags : {"dc": "nyc"}}]
+ settings : {
+   getLastErrorModes : {
+	 allDCs :  {"dc" : 3},
+	 someDCs : {"dc" : 2}}}
+}
+
+> db.post.insert({...})
+> db.runCommand({getLastError : 1, w : "allDCs"})
+
+</code></pre>
+					</section>
+				</section>
+
+				<section>
+					<section data-state="title-graphic eventual-consistency" data-markdown>
+						## Eventual Consistency
+
+						[http://www.flickr.com/photos/26095468@N04/3779692985](http://www.flickr.com/photos/26095468@N04/3779692985)
+					</section>
+
+					<section data-state	data-markdown>
+						# Using Replicas for reads
+
+Read Preference / Slave Okay
+
+  * driver will always send writes to Primary
+  * driver will send read requests to Secondaries
+
+Python examples
+
+<pre><code class="langugage-python small-size">
+Connection(read_preference=ReadPreference.PRIMARY)
+db.read_preference = ReadPreference.SECONDARY_ONLY
+db.test.read_preference = ReadPreference.SECONDARY
+db.test.find(read_preference=ReadPreference.SECONDARY)
+
+</code></pre>
+					</section>
+
+					<section data-state	data-markdown>
+						# Using Replicas for reads
+
+						Warning!
+
+						* Secondaries may be out of date
+						* Not applicable for all applications
+						* Sharding provides consistent scaling of reads
+					</section>
+				</section>
+
+				<section data-state	data-markdown>
+					# Replication features
+
+					* Reads from Primary are always consistent
+
+					* Reads from Secondaries are eventually consistent
+
+					* Automatic failover if a Primary fails
+
+					* Automatic recovery when a node joins the set
+
+					* Full control of where writes occur
+				</section>
+			</div>
+
+			<!-- The navigational controls UI -->
+			<aside class="controls">
+				<a class="left" href="#">&#x25C4;</a>
+				<a class="right" href="#">&#x25BA;</a>
+				<a class="up" href="#">&#x25B2;</a>
+				<a class="down" href="#">&#x25BC;</a>
+			</aside>
+
+			<!-- 10gen footer -->
+			<div class="footer"></div>
+
+			<!-- Presentation progress bar -->
+			<div class="progress"><span></span></div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/linear(2d)
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/highlight.js', async: true, callback: function() { window.hljs.initHighlightingOnLoad(); } },
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'lib/js/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'lib/js/data-markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'socket.io/socket.io.js', async: true, condition: function() { return window.location.host === 'localhost:1947'; } },
+					{ src: 'plugin/speakernotes/client.js', async: true, condition: function() { return window.location.host === 'localhost:1947'; } },
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
