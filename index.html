@@ -25,7 +25,9 @@
 
 		<script>
 			// If the query includes 'print-pdf' we'll use the PDF print sheet
-			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+			var print = ( window.location.search.match( /print-pdf/gi ) ? true : false );
+			document.write( '<link rel="stylesheet" href="css/print/' + ( print ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+			if (print) { document.querySelector( 'html' ).classList.add('print');}
 		</script>
 
 		<!--[if lt IE 9]>
@@ -217,6 +219,8 @@ mongod --replSet <replica_name>  --oplogSize <MB>  > cfg = {
 				<section>
 					<section data-state="title-graphic priorities" data-markdown>
 						## Priorities
+
+						![Priorities](img/priorities.png)
 
 						[http://www.flickr.com/photos/21975042@N02/3866780999](http://www.flickr.com/photos/21975042@N02/3866780999)
 					</section>
@@ -425,6 +429,21 @@ db.test.find(read_preference=ReadPreference.SECONDARY)
 					{ src: 'plugin/speakernotes/client.js', async: true, condition: function() { return window.location.host === 'localhost:1947'; } },
 				]
 			});
+
+			/* Set slide classes as well so we can print backgrounds and
+			   See them in the overview modes
+			*/
+			var dataStates = document.querySelectorAll( '[data-state]' );
+			for (var i = 0; i < dataStates.length; i++ ) {
+				var element = dataStates[i];
+				var slideState = element.getAttribute( 'data-state' );
+				if (!slideState) { continue; }
+				var classList = slideState.split(' ');
+				for( var x = 0; x < classList.length; x++ ) {
+					console.log(classList[x], element.classList, element);
+					element.classList.add( classList[x] );
+				}
+			}
 
 		</script>
 
