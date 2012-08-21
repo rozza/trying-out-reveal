@@ -177,7 +177,8 @@
 					# Creating a Replica Set
 
 					<pre><code class="language-javascript mid-size">
-mongod --replSet <replica_name>  --oplogSize <MB>  > cfg = {
+mongod --replSet < replica name >  --oplogSize < MB >
+cfg = {
 	_id : "myset",
 	members : [
 	  { _id : 0, host : "stockholm1.acme.com" },
@@ -194,13 +195,13 @@ mongod --replSet <replica_name>  --oplogSize <MB>  > cfg = {
 
 					* rs.conf()
 					  * Shell helper:  get current configuration
-					* rs.initiate(<cfg>);
+					* rs.initiate(< cfg >);
 					  * Shell helper:  initiate replica set
-					* rs.reconfig(<cfg>)
+					* rs.reconfig(< cfg >)
 					  * Shell helper:  reconfigure a replica set
-					* rs.add("hostname:<port>")
+					* rs.add("hostname:< port >")
 					  * Shell helper:  add a new member
-					* rs.remove("hostname:<port>")
+					* rs.remove("hostname:< port >")
 					  * Shell helper:  remove a member
 				</section>
 
@@ -209,9 +210,9 @@ mongod --replSet <replica_name>  --oplogSize <MB>  > cfg = {
 
 					* rs.status()
 					  * Reports status of the replica set from one node's point of view
-					* rs.stepDown(<secs>)
+					* rs.stepDown(< secs >)
 					  * Request the primary to step down
-					* rs.freeze(<secs>)
+					* rs.freeze(< secs >)
 					  * Prevents any changes to the current replica set configuration (primary/secondary status)
 					  * Use during backups
 				</section>
